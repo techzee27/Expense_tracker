@@ -7,8 +7,10 @@ import { createClient } from '@/lib/supabase/client';
 import { updateProfileSchema, UpdateProfileDTO } from '@/models/profile.model';
 import { getProfileAction, updateProfileAction } from '@/controllers/profile.controller';
 import { User, GraduationCap, DollarSign, Loader2, Check } from 'lucide-react';
+import { useCurrency } from '@/hooks/use-currency';
 
 export default function ProfileSettingsPage() {
+  const { refreshCurrency } = useCurrency();
   const [userId, setUserId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -74,6 +76,7 @@ export default function ProfileSettingsPage() {
     setSaving(false);
     if (result.success) {
       setMessage({ type: 'success', text: 'Student profile successfully updated!' });
+      await refreshCurrency();
       setTimeout(() => setMessage({ type: '', text: '' }), 4000);
     } else {
       setMessage({ type: 'error', text: result.error || 'Failed to update profile details.' });

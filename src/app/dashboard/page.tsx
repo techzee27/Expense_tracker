@@ -29,8 +29,10 @@ import {
 } from '@/controllers/savings-goal.controller';
 import { SavingsGoalWithPercent } from '@/services/savings-goal.service';
 import { Expense } from '@/models/expense.model';
+import { useCurrency } from '@/hooks/use-currency';
 
 export default function DashboardPage() {
+  const { format, currencyCode } = useCurrency();
   const [userId, setUserId] = useState<string | null>(null);
   const [userName, setUserName] = useState('Student');
   const [loading, setLoading] = useState(true);
@@ -306,21 +308,21 @@ export default function DashboardPage() {
       <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
         <StatsCard
           title="Total Income"
-          value={`$${stats.totalIncome.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
+          value={format(stats.totalIncome)}
           icon={ArrowUpRight}
           trend={{ value: 0, isPositive: true }}
           gradient="from-purple-950/20 to-card/50"
         />
         <StatsCard
           title="Total Expenses"
-          value={`$${stats.totalExpense.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
+          value={format(stats.totalExpense)}
           icon={ArrowDownRight}
           trend={{ value: 0, isPositive: false }}
           gradient="from-emerald-950/10 to-card/50"
         />
         <StatsCard
           title="Net Savings"
-          value={`$${stats.netSavings.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
+          value={format(stats.netSavings)}
           icon={DollarSign}
           description="Net surplus from transactions"
           gradient="from-card to-card/50"
@@ -402,10 +404,10 @@ export default function DashboardPage() {
                     <div className="space-y-1.5">
                       <div className="flex justify-between text-xs font-semibold">
                         <span className="text-muted-foreground">
-                          Saved: <strong className="text-foreground">${g.currentAmount}</strong>
+                          Saved: <strong className="text-foreground">{format(g.currentAmount)}</strong>
                         </span>
                         <span className="text-muted-foreground">
-                          Target: <strong className="text-foreground">${g.targetAmount}</strong>
+                          Target: <strong className="text-foreground">{format(g.targetAmount)}</strong>
                         </span>
                       </div>
                       
@@ -419,7 +421,7 @@ export default function DashboardPage() {
 
                       <div className="flex justify-between text-[10px] font-bold">
                         <span className="text-muted-foreground font-semibold">
-                          Remaining: <span className="text-primary font-bold">${Math.max(0, g.targetAmount - g.currentAmount)}</span>
+                          Remaining: <span className="text-primary font-bold">{format(Math.max(0, g.targetAmount - g.currentAmount))}</span>
                         </span>
                         <span className="text-primary">
                           {g.completionPercentage}% Completed
@@ -484,7 +486,7 @@ export default function DashboardPage() {
                         tx.type === 'INCOME' ? 'text-emerald-400' : 'text-foreground'
                       }`}
                     >
-                      {tx.type === 'INCOME' ? '+' : '-'}${tx.amount.toFixed(2)}
+                      {tx.type === 'INCOME' ? '+' : '-'}{format(tx.amount)}
                     </p>
                     <p className="text-[10px] text-muted-foreground">{tx.date}</p>
                   </div>
@@ -538,7 +540,7 @@ export default function DashboardPage() {
               {/* Target Amount */}
               <div className="space-y-1.5">
                 <label className="text-xs font-semibold text-muted-foreground" htmlFor="goalTarget">
-                  Target Amount ($)
+                  Target Amount ({currencyCode})
                 </label>
                 <input
                   id="goalTarget"
@@ -555,7 +557,7 @@ export default function DashboardPage() {
               {/* Current Amount */}
               <div className="space-y-1.5">
                 <label className="text-xs font-semibold text-muted-foreground" htmlFor="goalCurrent">
-                  Current Amount Saved ($)
+                  Current Amount Saved ({currencyCode})
                 </label>
                 <input
                   id="goalCurrent"

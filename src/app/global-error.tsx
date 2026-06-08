@@ -1,6 +1,5 @@
 'use client';
 
-import React from 'react';
 import { AlertOctagon, RefreshCw } from 'lucide-react';
 
 export default function GlobalError({

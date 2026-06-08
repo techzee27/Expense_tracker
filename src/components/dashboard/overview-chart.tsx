@@ -11,6 +11,7 @@ import {
   ResponsiveContainer,
   Legend,
 } from 'recharts';
+import { useCurrency } from '@/hooks/use-currency';
 
 interface ChartDataPoint {
   month: string;
@@ -33,6 +34,7 @@ interface OverviewChartProps {
 
 export function OverviewChart({ data }: OverviewChartProps) {
   const [isMounted, setIsMounted] = useState(false);
+  const { format } = useCurrency();
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
@@ -80,6 +82,7 @@ export function OverviewChart({ data }: OverviewChartProps) {
               tickLine={false}
               axisLine={false}
               tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 12 }}
+              tickFormatter={(value) => format(value)}
             />
             <Tooltip
               contentStyle={{
@@ -88,6 +91,7 @@ export function OverviewChart({ data }: OverviewChartProps) {
                 borderRadius: '12px',
                 color: 'hsl(var(--foreground))',
               }}
+              formatter={(value: any, name: any) => [format(Number(value)), name]}
             />
             <Legend verticalAlign="top" height={36} iconType="circle" />
             <Area
@@ -114,3 +118,4 @@ export function OverviewChart({ data }: OverviewChartProps) {
     </div>
   );
 }
+

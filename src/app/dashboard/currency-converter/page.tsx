@@ -8,6 +8,7 @@ import {
   SUPPORTED_CURRENCIES,
   SupportedCurrency,
 } from '@/models/currency.model';
+import { formatCurrency } from '@/utils/currency';
 import {
   ArrowLeftRight,
   Loader2,
@@ -317,14 +318,12 @@ export default function CurrencyConverterPage() {
                   </p>
                   <div className="flex items-baseline justify-center gap-1.5">
                     <span className="text-3xl font-extrabold tracking-tight bg-gradient-to-r from-primary to-purple-400 bg-clip-text text-transparent">
-                      {amount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                      {formatCurrency(amount, fromCurrency)}
                     </span>
-                    <span className="text-xs font-bold text-muted-foreground uppercase">{fromCurrency}</span>
                     <span className="text-lg font-bold text-muted-foreground">=</span>
                     <span className="text-3xl font-extrabold tracking-tight text-foreground">
-                      {convertedAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 4 })}
+                      {formatCurrency(convertedAmount, toCurrency)}
                     </span>
-                    <span className="text-xs font-bold text-muted-foreground uppercase">{toCurrency}</span>
                   </div>
                   <p className="text-[11px] font-semibold text-muted-foreground flex items-center justify-center gap-1 mt-1">
                     <TrendingUp className="h-3 w-3 text-primary" />
@@ -394,10 +393,7 @@ export default function CurrencyConverterPage() {
                         <div className="h-6 w-16 bg-secondary/30 rounded animate-pulse" />
                       ) : converted !== null ? (
                         <p className="text-lg font-bold tracking-tight">
-                          {converted.toLocaleString(undefined, {
-                            minimumFractionDigits: 2,
-                            maximumFractionDigits: 2,
-                          })}
+                          {formatCurrency(converted, code)}
                         </p>
                       ) : (
                         <p className="text-sm text-muted-foreground">--</p>
@@ -431,16 +427,13 @@ export default function CurrencyConverterPage() {
                     className="flex justify-between items-center text-xs bg-secondary/20 p-2.5 rounded-lg hover:bg-secondary/40 transition-colors"
                   >
                     <span className="font-semibold text-muted-foreground">
-                      {value.toLocaleString()} {fromCurrency}
+                      {formatCurrency(value, fromCurrency)}
                     </span>
                     <span className="font-bold text-foreground">
                       {fetchingRates ? (
                         <Loader2 className="h-3 w-3 animate-spin text-primary" />
                       ) : valueConverted !== null ? (
-                        `${valueConverted.toLocaleString(undefined, {
-                          minimumFractionDigits: 2,
-                          maximumFractionDigits: 2,
-                        })} ${toCurrency}`
+                        formatCurrency(valueConverted, toCurrency)
                       ) : (
                         '--'
                       )}

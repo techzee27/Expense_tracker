@@ -1,8 +1,10 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
+import { createClient } from '@/lib/supabase/client';
+import { getProfileAction } from '@/controllers/profile.controller';
 import {
   LayoutDashboard,
   Receipt,
@@ -29,6 +31,33 @@ export function Sidebar() {
   const pathname = usePathname();
   const router = useRouter();
   const [isOpen, setIsOpen] = useState(false);
+  const [userData, setUserData] = useState<{ email: string; name: string } | null>(null);
+
+  useEffect(() => {
+    const fetchUser = async () => {
+      try {
+        const supabase = createClient();
+        const {
+          data: { user: authUser },
+        } = await supabase.auth.getUser();
+
+        if (authUser) {
+          const profileResult = await getProfileAction(authUser.id);
+          const name =
+            profileResult.success && profileResult.data?.fullName
+              ? profileResult.data.fullName
+              : authUser.user_metadata?.full_name || 'Student';
+          setUserData({
+            email: authUser.email || '',
+            name,
+          });
+        }
+      } catch (err) {
+        console.error('Failed to resolve user details in sidebar', err);
+      }
+    };
+    fetchUser();
+  }, []);
 
   const handleSignOut = () => {
     // Delete local mock session cookie
@@ -36,6 +65,15 @@ export function Sidebar() {
     router.push('/');
     router.refresh();
   };
+
+  const initials = userData
+    ? userData.name
+        .split(' ')
+        .map((n) => n[0])
+        .join('')
+        .substring(0, 2)
+        .toUpperCase()
+    : 'U';
 
   return (
     <>
@@ -108,11 +146,11 @@ export function Sidebar() {
         <div className="border-t border-border p-4 bg-card/10">
           <div className="flex items-center gap-3 rounded-xl p-2 hover:bg-secondary/20 transition-all duration-200 cursor-pointer">
             <div className="flex h-9 w-9 items-center justify-center rounded-full bg-primary/20 text-primary font-bold text-sm">
-              JD
+              {initials}
             </div>
             <div className="flex-1 overflow-hidden">
-              <p className="text-xs font-semibold truncate">John Doe</p>
-              <p className="text-[10px] text-muted-foreground truncate">john@university.edu</p>
+              <p className="text-xs font-semibold truncate">{userData ? userData.name : 'Loading...'}</p>
+              <p className="text-[10px] text-muted-foreground truncate">{userData ? userData.email : ''}</p>
             </div>
             <button
               onClick={handleSignOut}
@@ -127,3 +165,4 @@ export function Sidebar() {
     </>
   );
 }
+

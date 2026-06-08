@@ -26,8 +26,11 @@ import {
   deleteExpenseAction,
 } from '@/controllers/expense.controller';
 import { Expense, EXPENSE_CATEGORIES } from '@/models/expense.model';
+import { useCurrency } from '@/hooks/use-currency';
+import { formatCurrency } from '@/utils/currency';
 
 export default function ExpensesPage() {
+  const { format, currencyCode: profileCurrency } = useCurrency();
   const [userId, setUserId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [expenses, setExpenses] = useState<Expense[]>([]);
@@ -57,7 +60,6 @@ export default function ExpensesPage() {
   const [formDescription, setFormDescription] = useState('');
   const [formDate, setFormDate] = useState(() => new Date().toISOString().split('T')[0]);
   const [formCurrency, setFormCurrency] = useState('USD');
-  const [profileCurrency, setProfileCurrency] = useState('USD');
   const [validationError, setValidationError] = useState('');
 
   // Fetch session user
@@ -69,21 +71,19 @@ export default function ExpensesPage() {
       } = await supabase.auth.getUser();
       if (user) {
         setUserId(user.id);
-        const { data: profile } = await supabase
-          .from('profiles')
-          .select('currency')
-          .eq('id', user.id)
-          .single();
-        if (profile?.currency) {
-          setProfileCurrency(profile.currency);
-          setFormCurrency(profile.currency);
-        }
       } else {
         setLoading(false);
       }
     };
     fetchUser();
   }, []);
+
+  // Update form currency when profile currency loads/changes
+  useEffect(() => {
+    if (profileCurrency) {
+      setFormCurrency(profileCurrency);
+    }
+  }, [profileCurrency]);
 
   // Fetch expenses function
   const fetchExpenses = useCallback(async () => {
@@ -411,11 +411,11 @@ export default function ExpensesPage() {
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-right">
                       <div className={`font-bold ${expense.type === 'INCOME' ? 'text-emerald-400' : 'text-foreground'}`}>
-                        {expense.type === 'INCOME' ? '+' : '-'}${expense.amount.toFixed(2)}
+                        {expense.type === 'INCOME' ? '+' : '-'}{format(expense.amount)}
                       </div>
                       {expense.originalCurrency && expense.originalCurrency !== profileCurrency && (
                         <div className="text-[10px] text-muted-foreground font-semibold">
-                          ({expense.type === 'INCOME' ? '+' : '-'}${expense.originalAmount.toFixed(2)} {expense.originalCurrency})
+                          ({expense.type === 'INCOME' ? '+' : '-'}{formatCurrency(expense.originalAmount, expense.originalCurrency)})
                         </div>
                       )}
                     </td>

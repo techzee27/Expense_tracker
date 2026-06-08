@@ -33,8 +33,10 @@ import {
 } from '@/controllers/budget.controller';
 import { BudgetWithUsage } from '@/services/budget.service';
 import { EXPENSE_CATEGORIES } from '@/models/expense.model';
+import { useCurrency } from '@/hooks/use-currency';
 
 export default function BudgetsPage() {
+  const { format, currencyCode } = useCurrency();
   const [userId, setUserId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [budgets, setBudgets] = useState<BudgetWithUsage[]>([]);
@@ -258,7 +260,7 @@ export default function BudgetsPage() {
             </div>
           </div>
           <div>
-            <h4 className="text-2xl font-black">${totalBudgeted.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</h4>
+            <h4 className="text-2xl font-black">{format(totalBudgeted)}</h4>
           </div>
         </div>
 
@@ -270,7 +272,7 @@ export default function BudgetsPage() {
             </div>
           </div>
           <div>
-            <h4 className="text-2xl font-black">${totalSpent.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</h4>
+            <h4 className="text-2xl font-black">{format(totalSpent)}</h4>
           </div>
         </div>
 
@@ -282,7 +284,7 @@ export default function BudgetsPage() {
             </div>
           </div>
           <div>
-            <h4 className="text-2xl font-black">${totalRemaining.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</h4>
+            <h4 className="text-2xl font-black">{format(totalRemaining)}</h4>
           </div>
         </div>
 
@@ -314,7 +316,7 @@ export default function BudgetsPage() {
                 <BarChart data={chartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#2a2a35" />
                   <XAxis dataKey="name" stroke="#8b8b9a" fontSize={11} tickLine={false} />
-                  <YAxis stroke="#8b8b9a" fontSize={11} tickLine={false} />
+                  <YAxis stroke="#8b8b9a" fontSize={11} tickLine={false} tickFormatter={(value) => format(value)} />
                   <Tooltip
                     contentStyle={{
                       backgroundColor: '#181824',
@@ -323,6 +325,7 @@ export default function BudgetsPage() {
                       color: '#ffffff',
                       fontSize: '12px',
                     }}
+                    formatter={(value: any, name: any) => [format(Number(value)), name]}
                   />
                   <Legend wrapperStyle={{ fontSize: '11px', paddingTop: '10px' }} />
                   <Bar dataKey="Budget" fill="#a855f7" radius={[4, 4, 0, 0]} />
@@ -399,10 +402,10 @@ export default function BudgetsPage() {
                     <div className="space-y-1.5">
                       <div className="flex justify-between text-xs font-semibold">
                         <span className="text-muted-foreground">
-                          Spent: <strong className="text-foreground">${b.usedAmount}</strong>
+                          Spent: <strong className="text-foreground">{format(b.usedAmount)}</strong>
                         </span>
                         <span className="text-muted-foreground">
-                          Limit: <strong className="text-foreground">${b.amount}</strong>
+                          Limit: <strong className="text-foreground">{format(b.amount)}</strong>
                         </span>
                       </div>
                       
@@ -416,7 +419,7 @@ export default function BudgetsPage() {
 
                       <div className="flex justify-between items-center text-[10px]">
                         <span className="text-muted-foreground">
-                          Remaining: <strong>${b.remainingAmount}</strong>
+                          Remaining: <strong>{format(b.remainingAmount)}</strong>
                         </span>
                         <span className="font-bold uppercase tracking-wider text-xs">
                           {b.utilizationPercentage}%
@@ -479,7 +482,7 @@ export default function BudgetsPage() {
               {/* Amount */}
               <div className="space-y-1.5">
                 <label className="text-xs font-semibold text-muted-foreground" htmlFor="modalAmount">
-                  Budget Limit ($)
+                  Budget Limit ({currencyCode})
                 </label>
                 <input
                   id="modalAmount"

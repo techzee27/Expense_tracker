@@ -48,6 +48,8 @@ import { AnalyticsSummary } from '@/services/analytics.service';
 import { CostOfLivingDetails, CostBreakdown } from '@/services/cost-of-living.service';
 import { CostOfLiving } from '@/models/cost-of-living.model';
 import { StatsCard } from '@/components/dashboard/stats-card';
+import { useCurrency } from '@/hooks/use-currency';
+import { formatCurrency } from '@/utils/currency';
 
 // Custom colors for charts
 const COLORS = ['#a855f7', '#ec4899', '#3b82f6', '#10b981', '#f59e0b', '#6366f1', '#14b8a6', '#6b7280'];
@@ -84,7 +86,7 @@ export default function AnalyticsPage() {
   ]);
   const [compareCitiesList, setCompareCitiesList] = useState<CostOfLiving[][]>([[], [], []]);
 
-  const [profileCurrency, setProfileCurrency] = useState('USD');
+  const { format, currencyCode } = useCurrency();
   const [usdRates, setUsdRates] = useState<Record<string, number>>({
     USD: 1.0, EUR: 0.92, GBP: 0.79, CAD: 1.37, AUD: 1.51, INR: 83.50
   });
@@ -102,16 +104,16 @@ export default function AnalyticsPage() {
   const formatColAmount = (usdValue: number, country: string) => {
     const countryCurrency = getCountryCurrency(country);
     const rateCountry = usdRates[countryCurrency] || 1.0;
-    const ratePreferred = usdRates[profileCurrency] || 1.0;
+    const ratePreferred = usdRates[currencyCode] || 1.0;
 
     const valCountry = usdValue * rateCountry;
     const valPreferred = usdValue * ratePreferred;
 
-    if (countryCurrency === profileCurrency) {
-      return `${profileCurrency} ${valPreferred.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+    if (countryCurrency === currencyCode) {
+      return format(valPreferred);
     }
 
-    return `${countryCurrency} ${valCountry.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} (${profileCurrency} ${valPreferred.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })})`;
+    return `${formatCurrency(valCountry, countryCurrency)} (${format(valPreferred)})`;
   };
 
   // Fetch session user on mount
@@ -124,14 +126,6 @@ export default function AnalyticsPage() {
       } = await supabase.auth.getUser();
       if (user) {
         setUserId(user.id);
-        const { data: profile } = await supabase
-          .from('profiles')
-          .select('currency')
-          .eq('id', user.id)
-          .single();
-        if (profile?.currency) {
-          setProfileCurrency(profile.currency);
-        }
       } else {
         setLoading(false);
       }
@@ -321,13 +315,13 @@ export default function AnalyticsPage() {
   // Cost of living chart data mapping
   const colChartData = colDetails
     ? [
-      { name: 'Rent', value: Number((colDetails.breakdown.rent * (usdRates[profileCurrency] || 1.0)).toFixed(2)) },
-      { name: 'Food', value: Number((colDetails.breakdown.food * (usdRates[profileCurrency] || 1.0)).toFixed(2)) },
-      { name: 'Transport', value: Number((colDetails.breakdown.transport * (usdRates[profileCurrency] || 1.0)).toFixed(2)) },
-      { name: 'Utilities', value: Number((colDetails.breakdown.utilities * (usdRates[profileCurrency] || 1.0)).toFixed(2)) },
-      { name: 'Internet', value: Number((colDetails.breakdown.internet * (usdRates[profileCurrency] || 1.0)).toFixed(2)) },
-      { name: 'Healthcare', value: Number((colDetails.breakdown.healthcare * (usdRates[profileCurrency] || 1.0)).toFixed(2)) },
-      { name: 'Entertainment', value: Number((colDetails.breakdown.entertainment * (usdRates[profileCurrency] || 1.0)).toFixed(2)) },
+      { name: 'Rent', value: Number((colDetails.breakdown.rent * (usdRates[currencyCode] || 1.0)).toFixed(2)) },
+      { name: 'Food', value: Number((colDetails.breakdown.food * (usdRates[currencyCode] || 1.0)).toFixed(2)) },
+      { name: 'Transport', value: Number((colDetails.breakdown.transport * (usdRates[currencyCode] || 1.0)).toFixed(2)) },
+      { name: 'Utilities', value: Number((colDetails.breakdown.utilities * (usdRates[currencyCode] || 1.0)).toFixed(2)) },
+      { name: 'Internet', value: Number((colDetails.breakdown.internet * (usdRates[currencyCode] || 1.0)).toFixed(2)) },
+      { name: 'Healthcare', value: Number((colDetails.breakdown.healthcare * (usdRates[currencyCode] || 1.0)).toFixed(2)) },
+      { name: 'Entertainment', value: Number((colDetails.breakdown.entertainment * (usdRates[currencyCode] || 1.0)).toFixed(2)) },
     ]
     : [];
 
@@ -341,7 +335,7 @@ export default function AnalyticsPage() {
           const key = `${slot.details.location.city}, ${slot.details.location.country}`;
           const prop = cat.toLowerCase() as keyof CostBreakdown;
           const usdVal = slot.details.breakdown[prop] || 0;
-          row[key] = Number((usdVal * (usdRates[profileCurrency] || 1.0)).toFixed(2));
+          row[key] = Number((usdVal * (usdRates[currencyCode] || 1.0)).toFixed(2));
         }
       });
       return row;
@@ -364,8 +358,8 @@ export default function AnalyticsPage() {
           <button
             onClick={() => setActiveTab('reports')}
             className={`rounded-lg px-4 py-2 text-xs font-bold transition-all cursor-pointer ${activeTab === 'reports'
-                ? 'bg-primary text-primary-foreground shadow-[0_0_15px_rgba(168,85,247,0.3)]'
-                : 'text-muted-foreground hover:text-foreground'
+              ? 'bg-primary text-primary-foreground shadow-[0_0_15px_rgba(168,85,247,0.3)]'
+              : 'text-muted-foreground hover:text-foreground'
               }`}
           >
             Financial Reports
@@ -373,8 +367,8 @@ export default function AnalyticsPage() {
           <button
             onClick={() => setActiveTab('col')}
             className={`rounded-lg px-4 py-2 text-xs font-bold transition-all cursor-pointer ${activeTab === 'col'
-                ? 'bg-primary text-primary-foreground shadow-[0_0_15px_rgba(168,85,247,0.3)]'
-                : 'text-muted-foreground hover:text-foreground'
+              ? 'bg-primary text-primary-foreground shadow-[0_0_15px_rgba(168,85,247,0.3)]'
+              : 'text-muted-foreground hover:text-foreground'
               }`}
           >
             Cost of Living
@@ -395,28 +389,28 @@ export default function AnalyticsPage() {
           <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
             <StatsCard
               title="Total Income"
-              value={`$${cards.totalIncome.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
+              value={format(cards.totalIncome)}
               icon={ArrowUpRight}
               trend={{ value: 0, isPositive: true }}
               gradient="from-purple-950/20 to-card/50"
             />
             <StatsCard
               title="Total Expenses"
-              value={`$${cards.totalExpenses.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
+              value={format(cards.totalExpenses)}
               icon={ArrowDownRight}
               trend={{ value: 0, isPositive: false }}
               gradient="from-emerald-950/10 to-card/50"
             />
             <StatsCard
               title="Total Savings"
-              value={`$${cards.totalSavings.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
+              value={format(cards.totalSavings)}
               icon={DollarSign}
               description="Net saved surplus"
               gradient="from-card to-card/50"
             />
             <StatsCard
               title="Remaining Budget"
-              value={`$${cards.remainingBudget.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
+              value={format(cards.remainingBudget)}
               icon={PiggyBank}
               description="Active budget buffer"
               gradient="from-card to-card/50"
@@ -444,7 +438,7 @@ export default function AnalyticsPage() {
                       </defs>
                       <CartesianGrid strokeDasharray="3 3" stroke="#2a2a35" />
                       <XAxis dataKey="month" stroke="#8b8b9a" fontSize={11} tickLine={false} />
-                      <YAxis stroke="#8b8b9a" fontSize={11} tickLine={false} />
+                      <YAxis stroke="#8b8b9a" fontSize={11} tickLine={false} tickFormatter={(value) => format(value)} />
                       <Tooltip
                         contentStyle={{
                           backgroundColor: '#181824',
@@ -453,6 +447,7 @@ export default function AnalyticsPage() {
                           color: '#ffffff',
                           fontSize: '12px',
                         }}
+                        formatter={(value: any, name: any) => [format(Number(value)), name]}
                       />
                       <Area type="monotone" dataKey="amount" stroke="#ec4899" fillOpacity={1} fill="url(#colorMonthlyExpense)" strokeWidth={2} name="Expenses" />
                     </AreaChart>
@@ -478,7 +473,7 @@ export default function AnalyticsPage() {
                     <BarChart data={reportsData.savingsTrend} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
                       <CartesianGrid strokeDasharray="3 3" stroke="#2a2a35" />
                       <XAxis dataKey="month" stroke="#8b8b9a" fontSize={11} tickLine={false} />
-                      <YAxis stroke="#8b8b9a" fontSize={11} tickLine={false} />
+                      <YAxis stroke="#8b8b9a" fontSize={11} tickLine={false} tickFormatter={(value) => format(value)} />
                       <Tooltip
                         contentStyle={{
                           backgroundColor: '#181824',
@@ -487,6 +482,7 @@ export default function AnalyticsPage() {
                           color: '#ffffff',
                           fontSize: '12px',
                         }}
+                        formatter={(value: any, name: any) => [format(Number(value)), name]}
                       />
                       <Legend wrapperStyle={{ fontSize: '11px', paddingTop: '10px' }} />
                       <Bar dataKey="income" fill="#10b981" name="Income" radius={[3, 3, 0, 0]} />
@@ -535,6 +531,7 @@ export default function AnalyticsPage() {
                             color: '#ffffff',
                             fontSize: '12px',
                           }}
+                          formatter={(value: any, name: any) => [format(Number(value)), name]}
                         />
                       </PieChart>
                     </ResponsiveContainer>
@@ -560,7 +557,7 @@ export default function AnalyticsPage() {
                             <span className="truncate">{entry.name}</span>
                           </div>
                           <div className="text-foreground text-[11px]">
-                            ${entry.value.toLocaleString()} ({percentage}%)
+                            {format(entry.value)} ({percentage}%)
                           </div>
                         </div>
                       );
@@ -588,7 +585,7 @@ export default function AnalyticsPage() {
                       <div className="flex justify-between">
                         <span className="text-foreground">{b.category}</span>
                         <span className="text-muted-foreground">
-                          <strong className="text-foreground">${b.spent}</strong> / ${b.budget}
+                          <strong className="text-foreground">{format(b.spent)}</strong> / {format(b.budget)}
                         </span>
                       </div>
 
@@ -596,10 +593,10 @@ export default function AnalyticsPage() {
                       <div className="h-2.5 w-full rounded-full bg-secondary/40 overflow-hidden relative border border-border/20">
                         <div
                           className={`h-full rounded-full transition-all duration-500 ${b.usagePercent >= 100
-                              ? 'bg-rose-500 shadow-[0_0_10px_rgba(239,68,68,0.3)]'
-                              : b.usagePercent >= 80
-                                ? 'bg-amber-500 shadow-[0_0_10px_rgba(245,158,11,0.3)]'
-                                : 'bg-primary'
+                            ? 'bg-rose-500 shadow-[0_0_10px_rgba(239,68,68,0.3)]'
+                            : b.usagePercent >= 80
+                              ? 'bg-amber-500 shadow-[0_0_10px_rgba(245,158,11,0.3)]'
+                              : 'bg-primary'
                             }`}
                           style={{ width: `${Math.min(100, b.usagePercent)}%` }}
                         />
@@ -641,11 +638,10 @@ export default function AnalyticsPage() {
               {selectedCountry && (
                 <button
                   onClick={toggleCompareMode}
-                  className={`flex items-center gap-2 rounded-xl px-4 py-2 text-xs font-bold transition-all cursor-pointer border ${
-                    compareMode
+                  className={`flex items-center gap-2 rounded-xl px-4 py-2 text-xs font-bold transition-all cursor-pointer border ${compareMode
                       ? 'bg-primary/20 border-primary text-primary shadow-[0_0_15px_rgba(168,85,247,0.25)]'
                       : 'bg-secondary/20 border-border text-muted-foreground hover:text-foreground'
-                  }`}
+                    }`}
                 >
                   <Globe className="h-4 w-4" />
                   {compareMode ? 'Switch to Single Search' : 'Compare Cities'}
@@ -692,7 +688,7 @@ export default function AnalyticsPage() {
                 {compareSlots.map((slot, index) => (
                   <div key={index} className="rounded-xl border border-border/60 bg-secondary/5 p-4 space-y-3">
                     <h4 className="font-extrabold text-xs text-primary uppercase tracking-wider">Location Slot {index + 1}</h4>
-                    
+
                     <div className="space-y-1">
                       <label className="text-[9px] uppercase tracking-wider font-bold text-muted-foreground">Country</label>
                       <select
@@ -797,6 +793,7 @@ export default function AnalyticsPage() {
                                 color: '#ffffff',
                                 fontSize: '12px',
                               }}
+                              formatter={(value: any, name: any) => [format(Number(value)), name]}
                             />
                             <Legend verticalAlign="top" height={36} iconType="circle" wrapperStyle={{ fontSize: 11, fontWeight: 'bold' }} />
                             {compareSlots.filter(s => s.details).map((slot, idx) => {
@@ -939,8 +936,9 @@ export default function AnalyticsPage() {
                             color: '#ffffff',
                             fontSize: '12px',
                           }}
+                          formatter={(value: any, name: any) => [format(Number(value)), name]}
                         />
-                        <Bar dataKey="value" fill="#a855f7" radius={[0, 4, 4, 0]} name="Estimated Cost ($)" />
+                        <Bar dataKey="value" fill="#a855f7" radius={[0, 4, 4, 0]} name={`Estimated Cost (${currencyCode})`} />
                       </BarChart>
                     </ResponsiveContainer>
                   )}
