@@ -27,6 +27,18 @@
   
   --color-card: hsl(var(--card));
   --color-card-foreground: hsl(var(--card-foreground));
+
+  /* Custom design tokens from user request */
+  --color-brand-background: hsl(var(--brand-background));
+  --color-light: hsl(var(--light));
+  --color-surface: hsl(var(--surface));
+  --color-surface-secondary: hsl(var(--surface-secondary));
+  --color-accent-purple: hsl(var(--accent-purple));
+  --color-accent-green: hsl(var(--accent-green));
+  --color-accent-cyan: hsl(var(--accent-cyan));
+  --color-accent-pink: hsl(var(--accent-pink));
+  --color-accent-yellow: hsl(var(--accent-yellow));
+  --color-accent-blue: hsl(var(--accent-blue));
   
   --radius-lg: var(--radius);
   --radius-md: calc(var(--radius) - 2px);
@@ -37,34 +49,46 @@
 }
 
 :root {
-  --background: 240 10% 3.9%;
-  --foreground: 0 0% 98%;
+  --background: 210 10% 96%; /* #F4F5F6 (light) */
+  --foreground: 225 12% 19%; /* #2A2D35 */
   
-  --card: 240 10% 3.9%;
-  --card-foreground: 0 0% 98%;
+  --card: 0 0% 100%; /* #FEFEFE (surface) */
+  --card-foreground: 225 12% 19%; /* #2A2D35 */
   
-  --popover: 240 10% 3.9%;
-  --popover-foreground: 0 0% 98%;
+  --popover: 0 0% 100%; /* #FEFEFE (surface) */
+  --popover-foreground: 225 12% 19%; /* #2A2D35 */
   
-  --primary: 263.4 70% 50.4%;
-  --primary-foreground: 210 20% 98%;
+  --primary: 21 78% 69%; /* #EE9E73 */
+  --primary-foreground: 0 0% 100%; /* #FFFFFF */
   
-  --secondary: 240 3.7% 15.9%;
-  --secondary-foreground: 0 0% 98%;
+  --secondary: 225 9% 37%; /* #565A66 */
+  --secondary-foreground: 0 0% 100%; /* #FFFFFF */
   
-  --muted: 240 3.7% 15.9%;
-  --muted-foreground: 240 5% 64.9%;
+  --muted: 24 17% 89%; /* #E7E1DD (surface_secondary) */
+  --muted-foreground: 2 13% 58%; /* #A18786 (muted_dark) */
   
-  --accent: 240 3.7% 15.9%;
-  --accent-foreground: 0 0% 98%;
+  --accent: 24 17% 89%; /* #E7E1DD (surface_secondary) */
+  --accent-foreground: 225 12% 19%; /* #2A2D35 */
   
   --destructive: 0 62.8% 30.6%;
   --destructive-foreground: 0 0% 98%;
   
-  --border: 240 3.7% 15.9%;
-  --input: 240 3.7% 15.9%;
-  --ring: 263.4 70% 50.4%;
+  --border: 13 16% 77%; /* #CEC0BC */
+  --input: 13 16% 77%; /* #CEC0BC */
+  --ring: 21 78% 69%; /* #EE9E73 */
   --radius: 0.75rem;
+
+  /* Custom design tokens from user request */
+  --brand-background: 358 16% 62%; /* #AE9091 */
+  --light: 210 10% 96%; /* #F4F5F6 */
+  --surface: 0 0% 100%; /* #FEFEFE */
+  --surface-secondary: 24 17% 89%; /* #E7E1DD */
+  --accent-purple: 228 81% 77%; /* #94A8F4 */
+  --accent-green: 129 43% 55%; /* #5DBE6B */
+  --accent-cyan: 190 76% 62%; /* #53D0E8 */
+  --accent-pink: 343 79% 83%; /* #F6B3C6 */
+  --accent-yellow: 38 90% 69%; /* #F7C46A */
+  --accent-blue: 218 89% 63%; /* #4C8BF5 */
 }
 
 /* Base custom styles to support layout glassmorphic effect */

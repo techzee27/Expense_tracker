@@ -10,7 +10,7 @@ export default function Home() {
         <div className="flex items-center gap-2.5">
           <GraduationCap className="h-8 w-8 text-primary" />
           <div>
-            <h1 className="font-bold text-xl tracking-tight bg-gradient-to-r from-primary to-purple-400 bg-clip-text text-transparent">
+            <h1 className="font-bold text-xl tracking-tight bg-gradient-to-r from-primary to-accent-purple bg-clip-text text-transparent">
               UniFinance
             </h1>
             <p className="text-[9px] text-muted-foreground tracking-widest uppercase">Student SaaS</p>
@@ -29,7 +29,7 @@ export default function Home() {
       <section className="flex-1 flex flex-col items-center justify-center text-center px-6 py-20 relative overflow-hidden">
         {/* Glow Effects */}
         <div className="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] rounded-full bg-primary/10 blur-[120px] pointer-events-none" />
-        <div className="absolute bottom-10 right-10 w-[300px] h-[300px] rounded-full bg-purple-500/5 blur-[100px] pointer-events-none" />
+        <div className="absolute bottom-10 right-10 w-[300px] h-[300px] rounded-full bg-accent-purple/10 blur-[100px] pointer-events-none" />
 
         <div className="max-w-3xl space-y-6">
           <div className="inline-flex items-center gap-2 rounded-full border border-primary/30 bg-primary/10 px-4 py-1.5 text-xs font-semibold text-primary animate-pulse">
@@ -38,7 +38,7 @@ export default function Home() {
           </div>
           <h2 className="text-4xl sm:text-6xl font-extrabold tracking-tight leading-tight">
             Take Control of Your{' '}
-            <span className="bg-gradient-to-r from-primary via-purple-400 to-emerald-400 bg-clip-text text-transparent">
+            <span className="bg-gradient-to-r from-primary via-accent-purple to-accent-green bg-clip-text text-transparent">
               Student Finances
             </span>
           </h2>
@@ -48,14 +48,14 @@ export default function Home() {
           <div className="pt-4 flex flex-col sm:flex-row items-center justify-center gap-4">
             <Link
               href="/dashboard"
-              className="w-full sm:w-auto flex items-center justify-center gap-2 rounded-xl bg-primary px-8 py-3.5 text-base font-bold text-primary-foreground hover:opacity-90 active:scale-95 transition-all shadow-[0_0_30px_rgba(168,85,247,0.35)]"
+              className="w-full sm:w-auto flex items-center justify-center gap-2 rounded-xl bg-primary px-8 py-3.5 text-base font-bold text-primary-foreground hover:opacity-90 active:scale-95 transition-all shadow-[0_0_30px_rgba(238,158,115,0.35)]"
             >
               Get Started Free
               <ArrowRight className="h-5 w-5" />
             </Link>
             <a
               href="#features"
-              className="w-full sm:w-auto flex items-center justify-center rounded-xl bg-secondary border border-border px-8 py-3.5 text-base font-bold hover:bg-secondary/80 transition-all"
+              className="w-full sm:w-auto flex items-center justify-center rounded-xl bg-secondary border border-border px-8 py-3.5 text-base font-bold text-white hover:bg-secondary/80 transition-all"
             >
               Learn More
             </a>

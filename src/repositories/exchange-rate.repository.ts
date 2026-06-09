@@ -1,4 +1,4 @@
-import { createClient } from '@/lib/supabase/server';
+import { createClient, createAdminClient } from '@/lib/supabase/server';
 import { ExchangeRate, CreateExchangeRateDTO } from '@/models/exchange-rate.model';
 import { Database } from '@/types/database.types';
 
@@ -23,7 +23,7 @@ export class ExchangeRateRepository {
   }
 
   async upsert(rateData: CreateExchangeRateDTO): Promise<ExchangeRate> {
-    const supabase = await createClient();
+    const supabase = createAdminClient();
     const { data, error } = await supabase
       .from('exchange_rates')
       .upsert(
@@ -41,7 +41,7 @@ export class ExchangeRateRepository {
       throw new Error(error.message);
     }
 
-    return this.mapToDomain(data);
+    return this.mapToDomain(data as DBExchangeRate);
   }
 
   private mapToDomain(dbRecord: DBExchangeRate): ExchangeRate {
