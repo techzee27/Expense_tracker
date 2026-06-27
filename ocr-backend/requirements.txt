@@ -1,0 +1,9 @@
+fastapi==0.138.0
+uvicorn==0.49.0
+python-multipart==0.0.9
+paddlepaddle==3.3.1
+paddleocr==3.7.0
+opencv-python-headless==4.10.0.84
+pypdfium2==5.10.1
+shapely==2.1.2
+pyclipper==1.4.0

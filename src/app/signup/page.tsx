@@ -81,7 +81,7 @@ export default function SignupPage() {
               <input
                 id="fullName"
                 type="text"
-                placeholder="Alex Morgan"
+                placeholder="Jane Doe"
                 {...register('fullName')}
                 className={`w-full pl-10 pr-4 py-2.5 bg-secondary/30 border rounded-xl text-sm focus:outline-none transition-colors ${
                   errors.fullName ? 'border-destructive focus:border-destructive' : 'border-border focus:border-primary/50'
@@ -104,7 +104,7 @@ export default function SignupPage() {
               <input
                 id="email"
                 type="email"
-                placeholder="alex@university.edu"
+                placeholder="you@university.edu"
                 {...register('email')}
                 className={`w-full pl-10 pr-4 py-2.5 bg-secondary/30 border rounded-xl text-sm focus:outline-none transition-colors ${
                   errors.email ? 'border-destructive focus:border-destructive' : 'border-border focus:border-primary/50'
@@ -167,7 +167,7 @@ export default function SignupPage() {
           <button
             type="submit"
             disabled={loading}
-            className="w-full flex items-center justify-center gap-2 rounded-xl bg-primary py-2.5 text-sm font-semibold text-primary-foreground hover:opacity-90 active:scale-95 transition-all disabled:opacity-50 shadow-[0_0_20px_rgba(168,85,247,0.2)]"
+            className="w-full flex items-center justify-center gap-2 rounded-xl bg-primary py-2.5 text-sm font-semibold text-primary-foreground hover:opacity-90 active:scale-95 transition-all disabled:opacity-50 shadow-[0_0_20px_rgba(168,85,247,0.2)] cursor-pointer"
           >
             {loading ? (
               <Loader2 className="h-4 w-4 animate-spin" />

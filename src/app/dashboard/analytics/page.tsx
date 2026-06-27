@@ -50,6 +50,8 @@ import { CostOfLiving } from '@/models/cost-of-living.model';
 import { StatsCard } from '@/components/dashboard/stats-card';
 import { useCurrency } from '@/hooks/use-currency';
 import { formatCurrency } from '@/utils/currency';
+import { useChartFilter, TimeRange } from '@/hooks/use-chart-filter';
+import { TimeRangeSelector } from '@/components/dashboard/time-range-selector';
 
 // Custom colors for charts
 const COLORS = ['#a855f7', '#ec4899', '#3b82f6', '#10b981', '#f59e0b', '#6366f1', '#14b8a6', '#6b7280'];
@@ -59,6 +61,28 @@ export default function AnalyticsPage() {
   const [loading, setLoading] = useState(true);
   const [mounted, setMounted] = useState(false);
   const [activeTab, setActiveTab] = useState<'reports' | 'col'>('reports');
+
+  // Chart aggregation loading states
+  const [spendingTrendLoading, setSpendingTrendLoading] = useState(false);
+  const [savingsTrendLoading, setSavingsTrendLoading] = useState(false);
+  const [categoriesLoading, setCategoriesLoading] = useState(false);
+  const [budgetUsageLoading, setBudgetUsageLoading] = useState(false);
+
+  // Sync state
+  const [syncCharts, setSyncCharts] = useState(true);
+
+  // Individual chart filters
+  const [globalFilter, setGlobalFilter, isGlobalInit] = useChartFilter('analytics-global', 'month');
+  const [spendingFilter, setSpendingFilter, isSpendingInit] = useChartFilter('analytics-spending', 'month');
+  const [savingsFilter, setSavingsFilter, isSavingsInit] = useChartFilter('analytics-savings', 'month');
+  const [categoriesFilter, setCategoriesFilter, isCategoriesInit] = useChartFilter('analytics-categories', 'month');
+  const [budgetFilter, setBudgetFilter, isBudgetInit] = useChartFilter('analytics-budget', 'month');
+
+  // Individual chart datasets
+  const [spendingData, setSpendingData] = useState<any[]>([]);
+  const [savingsData, setSavingsData] = useState<any[]>([]);
+  const [categoriesData, setCategoriesData] = useState<any[]>([]);
+  const [budgetData, setBudgetData] = useState<any[]>([]);
 
   // Reports data
   const [reportsData, setReportsData] = useState<AnalyticsSummary | null>(null);
@@ -146,26 +170,107 @@ export default function AnalyticsPage() {
     }
   }, [activeTab]);
 
-  // Fetch analytics summary from Server Action
-  const fetchAnalytics = useCallback(async () => {
+  // Granular chart aggregators
+  const fetchSpendingTrend = useCallback(async (range: 'day' | 'week' | 'month') => {
+    if (!userId) return;
+    setSpendingTrendLoading(true);
+    const result = await getAnalyticsSummaryAction(userId, range);
+    if (result.success && result.data) {
+      // Map aggregated expense trend
+      const trend = result.data.savingsTrend || [];
+      const mapped = trend.map((point: any) => ({
+        month: point.month,
+        amount: point.expenses,
+      }));
+      setSpendingData(mapped);
+    }
+    setSpendingTrendLoading(false);
+  }, [userId]);
+
+  const fetchSavingsTrend = useCallback(async (range: 'day' | 'week' | 'month') => {
+    if (!userId) return;
+    setSavingsTrendLoading(true);
+    const result = await getAnalyticsSummaryAction(userId, range);
+    if (result.success && result.data) {
+      setSavingsData(result.data.savingsTrend || []);
+    }
+    setSavingsTrendLoading(false);
+  }, [userId]);
+
+  const fetchCategories = useCallback(async (range: 'day' | 'week' | 'month') => {
+    if (!userId) return;
+    setCategoriesLoading(true);
+    const result = await getAnalyticsSummaryAction(userId, range);
+    if (result.success && result.data) {
+      setCategoriesData(result.data.categoryDistribution || []);
+    }
+    setCategoriesLoading(false);
+  }, [userId]);
+
+  const fetchBudgetUsage = useCallback(async (range: 'day' | 'week' | 'month') => {
+    if (!userId) return;
+    setBudgetUsageLoading(true);
+    const result = await getAnalyticsSummaryAction(userId, range);
+    if (result.success && result.data) {
+      setBudgetData(result.data.budgetUsageTrend || []);
+    }
+    setBudgetUsageLoading(false);
+  }, [userId]);
+
+  // Fetch KPI/Card overview summaries
+  const fetchOverviewCards = useCallback(async () => {
     if (!userId) return;
     setLoading(true);
     setReportsError('');
-
-    const result = await getAnalyticsSummaryAction(userId);
+    // Always query monthly for standard overall KPI values
+    const result = await getAnalyticsSummaryAction(userId, 'month');
     if (result.success && result.data) {
       setReportsData(result.data);
     } else {
-      setReportsError(result.error || 'Failed to retrieve analytics data.');
+      setReportsError(result.error || 'Failed to retrieve analytics overview details.');
     }
     setLoading(false);
   }, [userId]);
 
+  // Trigger synchronization effects
   useEffect(() => {
     if (userId) {
-      fetchAnalytics();
+      fetchOverviewCards();
     }
-  }, [userId, fetchAnalytics]);
+  }, [userId, fetchOverviewCards]);
+
+  useEffect(() => {
+    if (!userId) return;
+    const activeSpendingFilter = syncCharts ? globalFilter : spendingFilter;
+    if (isGlobalInit && isSpendingInit) {
+      fetchSpendingTrend(activeSpendingFilter);
+    }
+  }, [userId, globalFilter, spendingFilter, syncCharts, isGlobalInit, isSpendingInit, fetchSpendingTrend]);
+
+  useEffect(() => {
+    if (!userId) return;
+    const activeSavingsFilter = syncCharts ? globalFilter : savingsFilter;
+    if (isGlobalInit && isSavingsInit) {
+      fetchSavingsTrend(activeSavingsFilter);
+    }
+  }, [userId, globalFilter, savingsFilter, syncCharts, isGlobalInit, isSavingsInit, fetchSavingsTrend]);
+
+  useEffect(() => {
+    if (!userId) return;
+    const activeCategoriesFilter = syncCharts ? globalFilter : categoriesFilter;
+    if (isGlobalInit && isCategoriesInit) {
+      fetchCategories(activeCategoriesFilter);
+    }
+  }, [userId, globalFilter, categoriesFilter, syncCharts, isGlobalInit, isCategoriesInit, fetchCategories]);
+
+  useEffect(() => {
+    if (!userId) return;
+    const activeBudgetFilter = syncCharts ? globalFilter : budgetFilter;
+    if (isGlobalInit && isBudgetInit) {
+      fetchBudgetUsage(activeBudgetFilter);
+    }
+  }, [userId, globalFilter, budgetFilter, syncCharts, isGlobalInit, isBudgetInit, fetchBudgetUsage]);
+
 
   // Fetch unique countries on tab switch
   useEffect(() => {
@@ -385,6 +490,28 @@ export default function AnalyticsPage() {
             </div>
           )}
 
+          {/* Sync All Charts Selector Panel */}
+          <div className="rounded-2xl border border-border bg-card/30 p-5 backdrop-blur-md flex flex-col sm:flex-row justify-between items-center gap-4 mb-4">
+            <div className="flex items-center gap-3">
+              <input
+                id="sync-charts-checkbox"
+                type="checkbox"
+                checked={syncCharts}
+                onChange={(e) => setSyncCharts(e.target.checked)}
+                className="h-4 w-4 rounded border-border text-primary focus:ring-primary/45 bg-[#0b0c10]"
+              />
+              <label htmlFor="sync-charts-checkbox" className="text-xs font-bold text-slate-300 cursor-pointer selection:bg-transparent">
+                Sync all charts to same view
+              </label>
+            </div>
+            {syncCharts && (
+              <div className="flex items-center gap-2">
+                <span className="text-[10px] uppercase tracking-wider font-extrabold text-muted-foreground">Select View:</span>
+                <TimeRangeSelector value={globalFilter} onChange={setGlobalFilter} />
+              </div>
+            )}
+          </div>
+
           {/* KPI Cards */}
           <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
             <StatsCard
@@ -420,16 +547,29 @@ export default function AnalyticsPage() {
           {/* Charts Grid */}
           <div className="grid gap-6 lg:grid-cols-2">
             {/* 1. Monthly Spending Trend */}
-            <div className="rounded-2xl border border-border bg-card/30 p-6 backdrop-blur-md flex flex-col justify-between min-h-[350px]">
-              <div className="mb-4">
-                <h3 className="font-bold text-lg">Monthly Spending Trend</h3>
-                <p className="text-xs text-muted-foreground">Monthly aggregate expenses over the last 6 months</p>
+            <div className="rounded-2xl border border-border bg-card/30 p-6 backdrop-blur-md flex flex-col justify-between min-h-[350px] relative overflow-hidden">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4">
+                <div>
+                  <h3 className="font-bold text-lg">Spending Trend</h3>
+                  <p className="text-xs text-muted-foreground">Aggregate expenses across selected time range</p>
+                </div>
+                {!syncCharts && (
+                  <TimeRangeSelector value={spendingFilter} onChange={setSpendingFilter} />
+                )}
               </div>
 
-              <div className="flex-1 w-full min-h-[220px]">
-                {mounted && reportsData && reportsData.monthlySpendingTrend.length > 0 ? (
+              <div className="flex-1 w-full min-h-[220px] relative">
+                {spendingTrendLoading && (
+                  <div className="absolute inset-0 flex items-center justify-center bg-background/40 backdrop-blur-[1px] z-10 rounded-xl">
+                    <span className="text-xs text-muted-foreground animate-pulse flex items-center gap-2">
+                      <span className="h-4 w-4 border-2 border-primary border-t-transparent rounded-full animate-spin"></span>
+                      Aggregating spending...
+                    </span>
+                  </div>
+                )}
+                {mounted && spendingData.length > 0 ? (
                   <ResponsiveContainer width="100%" height="100%">
-                    <AreaChart data={reportsData.monthlySpendingTrend} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                    <AreaChart data={spendingData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
                       <defs>
                         <linearGradient id="colorMonthlyExpense" x1="0" y1="0" x2="0" y2="1">
                           <stop offset="5%" stopColor="#ec4899" stopOpacity={0.4} />
@@ -452,25 +592,39 @@ export default function AnalyticsPage() {
                       <Area type="monotone" dataKey="amount" stroke="#ec4899" fillOpacity={1} fill="url(#colorMonthlyExpense)" strokeWidth={2} name="Expenses" />
                     </AreaChart>
                   </ResponsiveContainer>
-                ) : (
-                  <div className="flex items-center justify-center h-full text-xs text-muted-foreground">
-                    No monthly spending trend data available.
+                ) : !spendingTrendLoading ? (
+                  <div className="flex flex-col items-center justify-center h-full text-xs text-muted-foreground border border-dashed border-slate-800 rounded-xl p-4">
+                    <p className="font-semibold text-slate-400">No records found</p>
+                    <p className="text-[10px] text-slate-500 mt-0.5">No expense data matches the selected view.</p>
                   </div>
-                )}
+                ) : null}
               </div>
             </div>
 
             {/* 2. Savings Trend */}
-            <div className="rounded-2xl border border-border bg-card/30 p-6 backdrop-blur-md flex flex-col justify-between min-h-[350px]">
-              <div className="mb-4">
-                <h3 className="font-bold text-lg">Savings Trend</h3>
-                <p className="text-xs text-muted-foreground">Income, expenses, and savings compared monthly</p>
+            <div className="rounded-2xl border border-border bg-card/30 p-6 backdrop-blur-md flex flex-col justify-between min-h-[350px] relative overflow-hidden">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4">
+                <div>
+                  <h3 className="font-bold text-lg">Savings Trend</h3>
+                  <p className="text-xs text-muted-foreground">Income, expenses, and savings compared</p>
+                </div>
+                {!syncCharts && (
+                  <TimeRangeSelector value={savingsFilter} onChange={setSavingsFilter} />
+                )}
               </div>
 
-              <div className="flex-1 w-full min-h-[220px]">
-                {mounted && reportsData && reportsData.savingsTrend.length > 0 ? (
+              <div className="flex-1 w-full min-h-[220px] relative">
+                {savingsTrendLoading && (
+                  <div className="absolute inset-0 flex items-center justify-center bg-background/40 backdrop-blur-[1px] z-10 rounded-xl">
+                    <span className="text-xs text-muted-foreground animate-pulse flex items-center gap-2">
+                      <span className="h-4 w-4 border-2 border-primary border-t-transparent rounded-full animate-spin"></span>
+                      Comparing cash flows...
+                    </span>
+                  </div>
+                )}
+                {mounted && savingsData.length > 0 ? (
                   <ResponsiveContainer width="100%" height="100%">
-                    <BarChart data={reportsData.savingsTrend} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                    <BarChart data={savingsData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
                       <CartesianGrid strokeDasharray="3 3" stroke="#2a2a35" />
                       <XAxis dataKey="month" stroke="#8b8b9a" fontSize={11} tickLine={false} />
                       <YAxis stroke="#8b8b9a" fontSize={11} tickLine={false} tickFormatter={(value) => format(value)} />
@@ -490,28 +644,42 @@ export default function AnalyticsPage() {
                       <Bar dataKey="savings" fill="#3b82f6" name="Savings" radius={[3, 3, 0, 0]} />
                     </BarChart>
                   </ResponsiveContainer>
-                ) : (
-                  <div className="flex items-center justify-center h-full text-xs text-muted-foreground">
-                    No monthly savings data to compare.
+                ) : !savingsTrendLoading ? (
+                  <div className="flex flex-col items-center justify-center h-full text-xs text-muted-foreground border border-dashed border-slate-800 rounded-xl p-4">
+                    <p className="font-semibold text-slate-400">No records found</p>
+                    <p className="text-[10px] text-slate-500 mt-0.5">No matching transactions in this range.</p>
                   </div>
-                )}
+                ) : null}
               </div>
             </div>
 
             {/* 3. Top Spending Categories */}
-            <div className="rounded-2xl border border-border bg-card/30 p-6 backdrop-blur-md flex flex-col justify-between min-h-[350px]">
-              <div className="mb-4">
-                <h3 className="font-bold text-lg">Top Spending Categories</h3>
-                <p className="text-xs text-muted-foreground">Breakdown of expenses by category</p>
+            <div className="rounded-2xl border border-border bg-card/30 p-6 backdrop-blur-md flex flex-col justify-between min-h-[350px] relative overflow-hidden">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4">
+                <div>
+                  <h3 className="font-bold text-lg">Top Spending Categories</h3>
+                  <p className="text-xs text-muted-foreground">Breakdown of expenses by category</p>
+                </div>
+                {!syncCharts && (
+                  <TimeRangeSelector value={categoriesFilter} onChange={setCategoriesFilter} />
+                )}
               </div>
 
-              <div className="flex-1 grid gap-4 md:grid-cols-5 items-center">
+              <div className="flex-1 grid gap-4 md:grid-cols-5 items-center relative">
+                {categoriesLoading && (
+                  <div className="absolute inset-0 flex items-center justify-center bg-background/40 backdrop-blur-[1px] z-10 rounded-xl">
+                    <span className="text-xs text-muted-foreground animate-pulse flex items-center gap-2">
+                      <span className="h-4 w-4 border-2 border-primary border-t-transparent rounded-full animate-spin"></span>
+                      Grouping categories...
+                    </span>
+                  </div>
+                )}
                 <div className="h-[220px] md:col-span-3">
-                  {mounted && reportsData && reportsData.categoryDistribution.length > 0 ? (
+                  {mounted && categoriesData.length > 0 ? (
                     <ResponsiveContainer width="100%" height="100%">
                       <PieChart>
                         <Pie
-                          data={reportsData.categoryDistribution}
+                          data={categoriesData}
                           cx="50%"
                           cy="50%"
                           innerRadius={55}
@@ -519,7 +687,7 @@ export default function AnalyticsPage() {
                           paddingAngle={4}
                           dataKey="value"
                         >
-                          {reportsData.categoryDistribution.map((entry, index) => (
+                          {categoriesData.map((entry, index) => (
                             <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                           ))}
                         </Pie>
@@ -535,17 +703,17 @@ export default function AnalyticsPage() {
                         />
                       </PieChart>
                     </ResponsiveContainer>
-                  ) : (
-                    <div className="flex items-center justify-center h-full text-xs text-muted-foreground">
-                      No category distribution data available.
+                  ) : !categoriesLoading ? (
+                    <div className="flex items-center justify-center h-full text-xs text-muted-foreground border border-dashed border-slate-800 rounded-xl p-4">
+                      No categories.
                     </div>
-                  )}
+                  ) : null}
                 </div>
 
                 <div className="space-y-2 max-h-[200px] overflow-y-auto pr-2 md:col-span-2">
-                  {reportsData && reportsData.categoryDistribution.length > 0 ? (
-                    reportsData.categoryDistribution.map((entry, index) => {
-                      const totalExpenseAmount = reportsData.categoryDistribution.reduce((acc, curr) => acc + curr.value, 0);
+                  {categoriesData.length > 0 ? (
+                    categoriesData.map((entry, index) => {
+                      const totalExpenseAmount = categoriesData.reduce((acc, curr) => acc + curr.value, 0);
                       const percentage = totalExpenseAmount > 0 ? Math.round((entry.value / totalExpenseAmount) * 100) : 0;
                       return (
                         <div key={entry.name} className="flex items-center justify-between text-xs font-semibold">
@@ -572,15 +740,28 @@ export default function AnalyticsPage() {
             </div>
 
             {/* 4. Budget Usage Trend */}
-            <div className="rounded-2xl border border-border bg-card/30 p-6 backdrop-blur-md flex flex-col justify-between min-h-[350px]">
-              <div className="mb-4">
-                <h3 className="font-bold text-lg">Budget Usage Trend</h3>
-                <p className="text-xs text-muted-foreground">Compare actual expenses against active budget limits</p>
+            <div className="rounded-2xl border border-border bg-card/30 p-6 backdrop-blur-md flex flex-col justify-between min-h-[350px] relative overflow-hidden">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4">
+                <div>
+                  <h3 className="font-bold text-lg">Budget Usage Trend</h3>
+                  <p className="text-xs text-muted-foreground">Compare actual expenses against active budget limits</p>
+                </div>
+                {!syncCharts && (
+                  <TimeRangeSelector value={budgetFilter} onChange={setBudgetFilter} />
+                )}
               </div>
 
-              <div className="flex-1 w-full min-h-[220px] max-h-[240px] overflow-y-auto space-y-4 pr-1">
-                {mounted && reportsData && reportsData.budgetUsageTrend.length > 0 ? (
-                  reportsData.budgetUsageTrend.map((b) => (
+              <div className="flex-1 w-full min-h-[220px] max-h-[240px] overflow-y-auto space-y-4 pr-1 relative">
+                {budgetUsageLoading && (
+                  <div className="absolute inset-0 flex items-center justify-center bg-background/40 backdrop-blur-[1px] z-10 rounded-xl">
+                    <span className="text-xs text-muted-foreground animate-pulse flex items-center gap-2">
+                      <span className="h-4 w-4 border-2 border-primary border-t-transparent rounded-full animate-spin"></span>
+                      Evaluating budgets...
+                    </span>
+                  </div>
+                )}
+                {mounted && budgetData.length > 0 ? (
+                  budgetData.map((b) => (
                     <div key={b.category} className="space-y-1.5 text-xs font-semibold">
                       <div className="flex justify-between">
                         <span className="text-foreground">{b.category}</span>
@@ -614,11 +795,11 @@ export default function AnalyticsPage() {
                       </div>
                     </div>
                   ))
-                ) : (
-                  <div className="flex items-center justify-center h-full text-xs text-muted-foreground">
-                    No active budgets set up. Go to the Budgets page to establish limits.
+                ) : !budgetUsageLoading ? (
+                  <div className="flex items-center justify-center h-full text-xs text-muted-foreground border border-dashed border-slate-800 rounded-xl p-4">
+                    No active budgets. Set limits on Budgets page.
                   </div>
-                )}
+                ) : null}
               </div>
             </div>
           </div>

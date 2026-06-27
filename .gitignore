@@ -50,3 +50,9 @@ next-env.d.ts
 *.sln
 *.sw?
 
+# Python virtual environments & caches
+.venv/
+venv/
+ENV/
+__pycache__/
+*.pyc

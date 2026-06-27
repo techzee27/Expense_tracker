@@ -3,6 +3,8 @@ import { budgetRepository } from '@/repositories/budget.repository';
 import { expenseService } from '@/services/expense.service';
 import { budgetService } from '@/services/budget.service';
 import { profileRepository } from '@/repositories/profile.repository';
+import { incomeService } from '@/services/income.service';
+import { incomeRepository } from '@/repositories/income.repository';
 
 export interface BudgetUsage {
   category: string;
@@ -23,65 +25,87 @@ export interface AnalyticsSummary {
     totalSavings: number;
     remainingBudget: number;
   };
-  expenseTrend: { date: string; amount: number }[]; // Daily trend (last 14 days)
-  monthlySpendingTrend: MonthlySpending[]; // Monthly spending trend (real database only)
+  expenseTrend: { date: string; amount: number }[]; // Daily/Hourly trend
+  monthlySpendingTrend: MonthlySpending[]; // Aggregated spending trend
   categoryDistribution: { name: string; value: number }[]; // Top spending categories sorted desc
   budgetUsageTrend: BudgetUsage[]; // Budget usage trend
-  savingsTrend: { month: string; income: number; expenses: number; savings: number }[]; // Savings trend (real database only)
+  savingsTrend: { month: string; income: number; expenses: number; savings: number }[]; // Savings trend
 }
 
 export class AnalyticsService {
-  async getAnalyticsSummary(userId: string): Promise<AnalyticsSummary> {
-    // 1. Fetch data from repositories
-    const { data: rawExpenses } = await expenseRepository.findAll(userId);
-    const expenses = await expenseService.getConvertedExpenses(userId, rawExpenses);
-    const budgets = await budgetRepository.findAll(userId);
+  async getAnalyticsSummary(userId: string, timeRange: 'day' | 'week' | 'month' = 'month'): Promise<AnalyticsSummary> {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const todayStr = today.toISOString().split('T')[0];
 
-    const now = new Date();
-    now.setHours(0, 0, 0, 0);
+    let startDateStr = '';
+    let endDateStr = todayStr;
 
-    // 2. Calculate Cards Info - totalIncome is considered from Estimated Monthly Income
-    const profile = await profileRepository.findById(userId);
-    const totalIncome = profile?.monthlyIncome || 0;
+    if (timeRange === 'day') {
+      startDateStr = todayStr;
+    } else if (timeRange === 'week') {
+      const past = new Date(today);
+      past.setDate(past.getDate() - 6);
+      startDateStr = past.toISOString().split('T')[0];
+    } else { // 'month'
+      const past = new Date(today);
+      past.setDate(past.getDate() - 29);
+      startDateStr = past.toISOString().split('T')[0];
+    }
 
-    let totalExpenses = 0;
-    expenses.forEach((e) => {
-      if (e.type === 'EXPENSE') {
-        totalExpenses += e.amount;
-      }
+    // 1. Fetch filtered data from repositories (optimizing query bounds)
+    const { data: rawExpenses } = await expenseRepository.findAll(userId, {
+      startDate: startDateStr,
+      endDate: endDateStr,
     });
+    const expenses = await expenseService.getConvertedExpenses(userId, rawExpenses);
 
+    const { data: rawIncomes } = await incomeRepository.findAll(userId, {
+      startDate: startDateStr,
+      endDate: endDateStr,
+    });
+    const incomes = rawIncomes;
+
+    const budgets = await budgetRepository.findAll(userId);
+    const expectedIncomeData = await incomeService.getExpectedMonthlyIncome(userId);
+    const expectedMonthlyIncome = expectedIncomeData.expectedIncome;
+
+    // 2. Calculate Cards Info
+    // Income calculation
+    let totalIncome = incomes.reduce((sum, inc) => sum + Number(inc.amount), 0);
+    if (totalIncome === 0) {
+      // Fallback to expected monthly income scaled to the time period
+      if (timeRange === 'day') {
+        totalIncome = expectedMonthlyIncome / 30;
+      } else if (timeRange === 'week') {
+        totalIncome = expectedMonthlyIncome / 4.33;
+      } else {
+        totalIncome = expectedMonthlyIncome;
+      }
+    }
+
+    const totalExpenses = expenses.reduce((sum, exp) => exp.type === 'EXPENSE' ? sum + exp.amount : sum, 0);
     const totalSavings = totalIncome - totalExpenses;
 
-    // Remaining Budget calculation:
-    // Only look at budgets that are currently active (startDate <= now <= endDate)
+    // Remaining Budget calculation (scaled to period)
     let totalRemainingBudget = 0;
-    
     budgets.forEach((budget) => {
-      const start = new Date(budget.startDate);
-      const end = new Date(budget.endDate);
-      start.setHours(0, 0, 0, 0);
-      end.setHours(0, 0, 0, 0);
-
-      // If budget is active
-      if (now >= start && now <= end) {
-        // Find matching expenses
-        const spent = expenses
-          .filter((exp) => {
-            if (exp.type !== 'EXPENSE') return false;
-            if (exp.category !== budget.category) return false;
-            const d = new Date(exp.date);
-            d.setHours(0, 0, 0, 0);
-            return d >= start && d <= end;
-          })
-          .reduce((sum, exp) => sum + exp.amount, 0);
-        
-        const remaining = Math.max(0, budget.amount - spent);
-        totalRemainingBudget += remaining;
+      let budgetAmount = Number(budget.amount);
+      if (timeRange === 'day') {
+        budgetAmount = budgetAmount / 30;
+      } else if (timeRange === 'week') {
+        budgetAmount = budgetAmount / 4.33;
       }
+
+      const spent = expenses
+        .filter((exp) => exp.type === 'EXPENSE' && exp.category === budget.category)
+        .reduce((sum, exp) => sum + exp.amount, 0);
+
+      const remaining = Math.max(0, budgetAmount - spent);
+      totalRemainingBudget += remaining;
     });
 
-    // 3. Category Distribution (Pie chart/Bar chart data) - Sorted Descending
+    // 3. Category Distribution
     const categoryMap: Record<string, number> = {};
     expenses.forEach((e) => {
       if (e.type === 'EXPENSE') {
@@ -93,76 +117,176 @@ export class AnalyticsService {
         name,
         value: Number(value.toFixed(2)),
       }))
-      .sort((a, b) => b.value - a.value); // Top categories first
+      .sort((a, b) => b.value - a.value);
 
-    // 4. Expense Trend (Daily for the last 14 days)
-    const dailyMap: Record<string, number> = {};
-    const last14Days = Array.from({ length: 14 }).map((_, i) => {
-      const d = new Date();
-      d.setDate(d.getDate() - i);
-      return d.toISOString().split('T')[0];
-    }).reverse();
+    // 4. Time range based aggregation for trends
+    let expenseTrend: { date: string; amount: number }[] = [];
+    let monthlySpendingTrend: MonthlySpending[] = [];
+    let savingsTrend: { month: string; income: number; expenses: number; savings: number }[] = [];
 
-    last14Days.forEach((dateStr) => {
-      dailyMap[dateStr] = 0;
-    });
-
-    expenses.forEach((e) => {
-      if (e.type === 'EXPENSE' && dailyMap[e.date] !== undefined) {
-        dailyMap[e.date] += e.amount;
+    if (timeRange === 'day') {
+      // Aggregate hourly (00:00 to 23:00)
+      const hourlyMap: Record<string, { income: number; expense: number }> = {};
+      for (let i = 0; i < 24; i++) {
+        const hrStr = `${i.toString().padStart(2, '0')}:00`;
+        hourlyMap[hrStr] = { income: 0, expense: 0 };
       }
-    });
 
-    const expenseTrend = Object.entries(dailyMap).map(([date, amount]) => ({
-      date: date.substring(5), // Keep only MM-DD
-      amount: Number(amount.toFixed(2)),
-    }));
-
-    // 5. Savings Trend & Monthly Spending Trend Setup
-    // Dynamically query unique months present inside actual user transactions
-    const monthsWithData = new Set<string>();
-    expenses.forEach((e) => {
-      monthsWithData.add(e.date.substring(0, 7)); // YYYY-MM
-    });
-
-    const sortedMonths = Array.from(monthsWithData).sort();
-
-    const monthlyMap: Record<string, { income: number; expenses: number; hasData: boolean }> = {};
-    sortedMonths.forEach((m) => {
-      // Set baseline income to the profile's Estimated Monthly Income for months that have data
-      monthlyMap[m] = { income: totalIncome, expenses: 0, hasData: false };
-    });
-
-    expenses.forEach((e) => {
-      const m = e.date.substring(0, 7); // YYYY-MM
-      if (monthlyMap[m]) {
-        monthlyMap[m].hasData = true;
+      expenses.forEach((e) => {
         if (e.type === 'EXPENSE') {
-          monthlyMap[m].expenses += e.amount;
+          const dt = new Date(e.createdAt || e.date);
+          const hr = `${dt.getHours().toString().padStart(2, '0')}:00`;
+          if (hourlyMap[hr]) {
+            hourlyMap[hr].expense += e.amount;
+          }
         }
-      }
-    });
+      });
 
-    const savingsTrend = Object.entries(monthlyMap).map(([month, data]) => ({
-      month,
-      income: Number(data.income.toFixed(2)),
-      expenses: Number(data.expenses.toFixed(2)),
-      savings: Number((data.income - data.expenses).toFixed(2)),
-    }));
+      incomes.forEach((inc) => {
+        const dt = new Date(inc.createdAt || inc.transactionTime || inc.transactionDate);
+        const hr = `${dt.getHours().toString().padStart(2, '0')}:00`;
+        if (hourlyMap[hr]) {
+          hourlyMap[hr].income += Number(inc.amount);
+        }
+      });
 
-    const monthlySpendingTrend = Object.entries(monthlyMap).map(([month, data]) => ({
-      month,
-      amount: Number(data.expenses.toFixed(2)),
-    }));
+      expenseTrend = Object.entries(hourlyMap).map(([hr, val]) => ({
+        date: hr,
+        amount: Number(val.expense.toFixed(2)),
+      }));
 
-    // 6. Budget Usage Trend
-    const categorySpending = await budgetService.calculateCategorySpending(userId);
-    const budgetUsageTrend = categorySpending.map((item) => ({
-      category: item.category,
-      budget: item.budget,
-      spent: item.spent,
-      usagePercent: item.budget > 0 ? Math.round((item.spent / item.budget) * 100) : 0,
-    }));
+      monthlySpendingTrend = Object.entries(hourlyMap).map(([hr, val]) => ({
+        month: hr,
+        amount: Number(val.expense.toFixed(2)),
+      }));
+
+      savingsTrend = Object.entries(hourlyMap).map(([hr, val]) => ({
+        month: hr,
+        income: Number(val.income.toFixed(2)),
+        expenses: Number(val.expense.toFixed(2)),
+        savings: Number((val.income - val.expense).toFixed(2)),
+      }));
+
+    } else if (timeRange === 'week') {
+      // Aggregate by past 7 days
+      const dailyMap: Record<string, { income: number; expense: number }> = {};
+      const weekdays = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+      const past7Days = Array.from({ length: 7 }).map((_, i) => {
+        const d = new Date(today);
+        d.setDate(d.getDate() - (6 - i));
+        return d.toISOString().split('T')[0];
+      });
+
+      past7Days.forEach((dateStr) => {
+        dailyMap[dateStr] = { income: 0, expense: 0 };
+      });
+
+      expenses.forEach((e) => {
+        if (e.type === 'EXPENSE' && dailyMap[e.date] !== undefined) {
+          dailyMap[e.date].expense += e.amount;
+        }
+      });
+
+      incomes.forEach((inc) => {
+        if (dailyMap[inc.transactionDate] !== undefined) {
+          dailyMap[inc.transactionDate].income += Number(inc.amount);
+        }
+      });
+
+      expenseTrend = Object.entries(dailyMap).map(([date, val]) => {
+        const d = new Date(date);
+        const label = weekdays[d.getDay()];
+        return {
+          date: label,
+          amount: Number(val.expense.toFixed(2)),
+        };
+      });
+
+      monthlySpendingTrend = Object.entries(dailyMap).map(([date, val]) => {
+        const d = new Date(date);
+        const label = weekdays[d.getDay()];
+        return {
+          month: label,
+          amount: Number(val.expense.toFixed(2)),
+        };
+      });
+
+      savingsTrend = Object.entries(dailyMap).map(([date, val]) => {
+        const d = new Date(date);
+        const label = weekdays[d.getDay()];
+        return {
+          month: label,
+          income: Number(val.income.toFixed(2)),
+          expenses: Number(val.expense.toFixed(2)),
+          savings: Number((val.income - val.expense).toFixed(2)),
+        };
+      });
+
+    } else { // 'month'
+      // Aggregate by past 30 days
+      const dailyMap: Record<string, { income: number; expense: number }> = {};
+      const past30Days = Array.from({ length: 30 }).map((_, i) => {
+        const d = new Date(today);
+        d.setDate(d.getDate() - (29 - i));
+        return d.toISOString().split('T')[0];
+      });
+
+      past30Days.forEach((dateStr) => {
+        dailyMap[dateStr] = { income: 0, expense: 0 };
+      });
+
+      expenses.forEach((e) => {
+        if (e.type === 'EXPENSE' && dailyMap[e.date] !== undefined) {
+          dailyMap[e.date].expense += e.amount;
+        }
+      });
+
+      incomes.forEach((inc) => {
+        if (dailyMap[inc.transactionDate] !== undefined) {
+          dailyMap[inc.transactionDate].income += Number(inc.amount);
+        }
+      });
+
+      expenseTrend = Object.entries(dailyMap).map(([date, val]) => ({
+        date: date.substring(5), // MM-DD
+        amount: Number(val.expense.toFixed(2)),
+      }));
+
+      monthlySpendingTrend = Object.entries(dailyMap).map(([date, val]) => ({
+        month: date.substring(5), // MM-DD
+        amount: Number(val.expense.toFixed(2)),
+      }));
+
+      savingsTrend = Object.entries(dailyMap).map(([date, val]) => ({
+        month: date.substring(5), // MM-DD
+        income: Number(val.income.toFixed(2)),
+        expenses: Number(val.expense.toFixed(2)),
+        savings: Number((val.income - val.expense).toFixed(2)),
+      }));
+    }
+
+    // 5. Budget Usage Trend
+    const budgetUsageTrend = await Promise.all(
+      budgets.map(async (budget) => {
+        let budgetAmount = Number(budget.amount);
+        if (timeRange === 'day') {
+          budgetAmount = budgetAmount / 30;
+        } else if (timeRange === 'week') {
+          budgetAmount = budgetAmount / 4.33;
+        }
+
+        const spent = expenses
+          .filter((exp) => exp.type === 'EXPENSE' && exp.category === budget.category)
+          .reduce((sum, exp) => sum + exp.amount, 0);
+
+        return {
+          category: budget.category,
+          budget: Number(budgetAmount.toFixed(2)),
+          spent: Number(spent.toFixed(2)),
+          usagePercent: budgetAmount > 0 ? Math.round((spent / budgetAmount) * 100) : 0,
+        };
+      })
+    );
 
     return {
       cards: {

@@ -10,6 +10,14 @@ export class ProfileService {
     // We can run business checks here: e.g. check currency supports, clean string values, etc.
     return profileRepository.update(userId, data);
   }
+
+  async clearImportedTransactions(userId: string): Promise<void> {
+    return profileRepository.clearImportedTransactions(userId);
+  }
+
+  async deleteUserAccountData(userId: string): Promise<void> {
+    return profileRepository.deleteUserAccountData(userId);
+  }
 }
 
 export const profileService = new ProfileService();

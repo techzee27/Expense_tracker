@@ -12,6 +12,7 @@ import {
   Legend,
 } from 'recharts';
 import { useCurrency } from '@/hooks/use-currency';
+import { TimeRangeSelector } from '@/components/dashboard/time-range-selector';
 
 interface ChartDataPoint {
   month: string;
@@ -30,9 +31,12 @@ const defaultData: ChartDataPoint[] = [
 
 interface OverviewChartProps {
   data?: ChartDataPoint[];
+  timeRange: 'day' | 'week' | 'month';
+  onTimeRangeChange: (value: 'day' | 'week' | 'month') => void;
+  isLoading?: boolean;
 }
 
-export function OverviewChart({ data }: OverviewChartProps) {
+export function OverviewChart({ data, timeRange, onTimeRangeChange, isLoading = false }: OverviewChartProps) {
   const [isMounted, setIsMounted] = useState(false);
   const { format } = useCurrency();
 
@@ -43,22 +47,44 @@ export function OverviewChart({ data }: OverviewChartProps) {
 
   if (!isMounted) {
     return (
-      <div className="flex h-80 items-center justify-center rounded-2xl border border-border bg-card/50">
+      <div className="flex h-64 items-center justify-center rounded-2xl border border-border bg-card/50">
         <span className="text-sm text-muted-foreground animate-pulse">Loading Chart...</span>
       </div>
     );
   }
 
-  const chartData = data || defaultData;
+  const chartData = data || [];
+  const isEmpty = chartData.length === 0;
 
   return (
-    <div className="rounded-2xl border border-border bg-card/30 p-6 backdrop-blur-md">
-      <div className="mb-4">
-        <h3 className="font-bold text-lg">Financial Overview</h3>
-        <p className="text-xs text-muted-foreground">Monthly breakdown of income and expenses</p>
+    <div className="rounded-2xl border border-border bg-card/30 p-6 backdrop-blur-md relative overflow-hidden transition-all duration-300">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4">
+        <div>
+          <h3 className="font-bold text-lg">Financial Overview</h3>
+          <p className="text-xs text-muted-foreground">Breakdown of income and expenses aggregated by selected view</p>
+        </div>
+        <div className="flex items-center gap-2">
+          <TimeRangeSelector value={timeRange} onChange={onTimeRangeChange} />
+        </div>
       </div>
 
-      <div className="h-80 w-full">
+      <div className="h-64 w-full relative">
+        {isLoading && (
+          <div className="absolute inset-0 flex items-center justify-center bg-background/40 backdrop-blur-[1px] z-10 rounded-xl transition-opacity duration-350">
+            <span className="text-xs text-muted-foreground animate-pulse flex items-center gap-2">
+              <span className="h-4 w-4 border-2 border-primary border-t-transparent rounded-full animate-spin"></span>
+              Updating aggregation...
+            </span>
+          </div>
+        )}
+        
+        {isEmpty && !isLoading ? (
+          <div className="absolute inset-0 flex flex-col items-center justify-center bg-[#0d0f17]/30 border border-dashed border-slate-800 rounded-xl text-center p-6 z-10">
+            <p className="text-sm font-semibold text-slate-400">No transactions recorded</p>
+            <p className="text-xs text-slate-500 max-w-[280px] mt-1">There are no records matching the selected {timeRange} filter.</p>
+          </div>
+        ) : null}
+
         <ResponsiveContainer width="100%" height="100%">
           <AreaChart data={chartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
             <defs>

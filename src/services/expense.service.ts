@@ -11,6 +11,7 @@ export class ExpenseService {
       search?: string;
       category?: string;
       type?: 'INCOME' | 'EXPENSE';
+      source?: string;
       month?: string;
       page?: number;
       limit?: number;
@@ -151,6 +152,30 @@ export class ExpenseService {
       console.error('Failed to dynamically convert expenses for display, returning defaults:', err);
       return expenses;
     }
+  }
+
+  async getUnapprovedExpenses(userId: string): Promise<Expense[]> {
+    const { data } = await expenseRepository.findAll(userId, { approved: false });
+    return this.getConvertedExpenses(userId, data);
+  }
+
+  async approveExpense(id: string, userId: string): Promise<Expense> {
+    return expenseRepository.update(id, userId, { approved: true });
+  }
+
+  async rejectExpense(id: string, userId: string): Promise<void> {
+    return expenseRepository.delete(id, userId);
+  }
+
+  async mergeExpense(id: string, targetId: string, userId: string): Promise<void> {
+    // Delete the unapproved imported entry
+    await expenseRepository.delete(id, userId);
+    // Keep targetId as approved
+    await expenseRepository.update(targetId, userId, { approved: true, duplicateFlag: false });
+  }
+
+  async checkDuplicate(userId: string, merchant: string, amount: number, date: string, source: string): Promise<boolean> {
+    return expenseRepository.checkDuplicate(userId, merchant, amount, date, source);
   }
 }
 

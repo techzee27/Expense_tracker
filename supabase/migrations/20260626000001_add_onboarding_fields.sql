@@ -1,0 +1,9 @@
+-- Migration: Add onboarding status fields to profiles table
+ALTER TABLE public.profiles
+ADD COLUMN IF NOT EXISTS intro_screens_completed BOOLEAN NOT NULL DEFAULT FALSE,
+ADD COLUMN IF NOT EXISTS profile_completed BOOLEAN NOT NULL DEFAULT FALSE,
+ADD COLUMN IF NOT EXISTS onboarding_completed BOOLEAN NOT NULL DEFAULT FALSE,
+ADD COLUMN IF NOT EXISTS last_completed_step INTEGER NOT NULL DEFAULT 0,
+ADD COLUMN IF NOT EXISTS home_city TEXT NULL,
+ADD COLUMN IF NOT EXISTS study_currency JSONB NULL,
+ADD COLUMN IF NOT EXISTS home_currency JSONB NULL;

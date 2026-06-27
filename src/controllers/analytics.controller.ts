@@ -2,9 +2,9 @@
 
 import { analyticsService } from '@/services/analytics.service';
 
-export async function getAnalyticsSummaryAction(userId: string) {
+export async function getAnalyticsSummaryAction(userId: string, timeRange?: 'day' | 'week' | 'month') {
   try {
-    const summary = await analyticsService.getAnalyticsSummary(userId);
+    const summary = await analyticsService.getAnalyticsSummary(userId, timeRange);
     return {
       success: true,
       data: summary,
