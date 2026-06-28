@@ -163,6 +163,80 @@ flowchart TD
 
 ---
 
+### Pipeline 4: Financial Intelligence Flow
+
+Processes raw data inputs through cognitive memory and router instances to produce spending recommendations and goal allocations.
+
+```mermaid
+flowchart TD
+    subgraph Input Sources
+        A[Manual Entry]
+        B[Gmail Ingestion]
+        C[SMS Sync]
+        D[OCR Receipt Ingestion]
+    end
+
+    subgraph Core Processing (Financial Intelligence Service)
+        E[Aggregate Transaction Data]
+        F[Fetch Hindsight Memory Context]
+        G[CascadeFlow Routing Decision]
+        H[Groq LLM Reasoning Execution]
+    end
+
+    subgraph Analytical Outputs
+        I[Spending Habits Analysis]
+        J[Budget Utilization & Overspend Alerts]
+        K[Savings Goal Allocations & Forecasting]
+        L[Natural Language Copilot Response]
+    end
+
+    A & B & C & D --> E
+    E --> F
+    F --> G
+    G --> H
+    H --> I & J & K & L
+```
+
+---
+
+### Pipeline 5: Dashboard Data Flow
+
+Standardizes multi-currency logs and computes real-time budget and savings goal metrics for the presentation layer.
+
+```mermaid
+flowchart TD
+    subgraph Data Layers (Supabase Database)
+        A[(Profiles Table: home_currency, preferred_currency)]
+        B[(Expenses Table: original_amount, original_currency)]
+        C[(Incomes Table: amount, currency)]
+        D[(Savings Goals Table: target_amount, current_amount)]
+        E[(Exchange Rates Table: current rates)]
+    end
+
+    subgraph Aggregation Layer (Next.js Node Server / Context)
+        F[Currency Normalization Engine]
+        G[Date-Based Transaction Aggregator]
+        H[Budget Limit Calculator]
+        I[Savings Goals Delta Evaluator]
+    end
+
+    subgraph Presentation Layer (Next.js React Client)
+        J[Financial Data Provider Context]
+        K[Recharts Spend Trends Widget]
+        L[Budget Health Alerts Banner]
+        M[Unified Student Financial Overview Dashboard]
+    end
+
+    A & B & C & D & E --> F
+    F --> G
+    G --> H
+    H --> I
+    I --> J
+    J --> K & L --> M
+```
+
+---
+
 ## 4. Database Architecture
 
 The UniFinance Expense Tracker uses **Supabase (PostgreSQL)** as its core data store. The database layer uses Row-Level Security (RLS) policies for user data isolation, database triggers to automate timestamping and profile initialization, and the `pg_cron` extension to automate background system activities.

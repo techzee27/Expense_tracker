@@ -123,7 +123,7 @@ Retrieves, filters, and parses inbox receipt confirmations automatically.
 
 Illustrates how transaction data feeds the reasoning engines to produce personalized insights.
 
-![Financial Intelligence Flow](./architectures/financial-intelligence-flow.png)
+![Financial Intelligence Flow](./architectures/financial-intelligence-flow-v2.png)
 
 * **Data Aggregation**: Aggregates manual inputs, email sync, and receipt scans.
 * **Insight Synthesis**: Evaluates budget status and goals progress.
@@ -135,7 +135,7 @@ Illustrates how transaction data feeds the reasoning engines to produce personal
 
 The relational database architecture is built on Supabase PostgreSQL. Below is the Entity-Relationship mapping showing structural relationships and key references.
 
-![Database Architecture](./architectures/database-architecture.png)
+![Database Architecture](./architectures/database-architecture-v2.png)
 
 * **Profile & Identity**: `profiles` extends `auth.users` through triggers.
 * **Transactional Records**: `expenses` logs core transaction items, which reference `profiles` and optional `recurring_expenses` structures.
@@ -149,7 +149,7 @@ The relational database architecture is built on Supabase PostgreSQL. Below is t
 
 Standardizes currency representation and updates analytics in real time.
 
-![Dashboard Data Flow](./architectures/dashboard-data-flow.png)
+![Dashboard Data Flow](./architectures/dashboard-data-flow-v2.png)
 
 * **Ingestion Streams**: Combines income streams, expenses, and goals.
 * **Dashboard Aggregation**: Calculates analytics metrics and formats graphs.
