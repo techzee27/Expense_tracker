@@ -123,7 +123,7 @@ Retrieves, filters, and parses inbox receipt confirmations automatically.
 
 Illustrates how transaction data feeds the reasoning engines to produce personalized insights.
 
-![Financial Intelligence Flow](./architectures/financial-intelligence-flow.png)
+![Financial Intelligence Flow](./architectures/Financial_Intelligence_Flow.png)
 
 * **Data Aggregation**: Aggregates manual inputs, email sync, and receipt scans.
 * **Insight Synthesis**: Evaluates budget status and goals progress.
