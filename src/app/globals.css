@@ -1,44 +1,44 @@
 @import "tailwindcss";
 
 @theme {
-  --color-border: hsl(var(--border));
-  --color-input: hsl(var(--input));
-  --color-ring: hsl(var(--ring));
-  --color-background: hsl(var(--background));
-  --color-foreground: hsl(var(--foreground));
+  --color-border: #cec0bc;
+  --color-input: #cec0bc;
+  --color-ring: #ee9e73;
+  --color-background: #f4f5f6;
+  --color-foreground: #2a2d35;
   
-  --color-primary: hsl(var(--primary));
-  --color-primary-foreground: hsl(var(--primary-foreground));
+  --color-primary: #ee9e73;
+  --color-primary-foreground: #ffffff;
   
-  --color-secondary: hsl(var(--secondary));
-  --color-secondary-foreground: hsl(var(--secondary-foreground));
+  --color-secondary: #565a66;
+  --color-secondary-foreground: #ffffff;
   
-  --color-destructive: hsl(var(--destructive));
-  --color-destructive-foreground: hsl(var(--destructive-foreground));
+  --color-destructive: #7f1d1d;
+  --color-destructive-foreground: #fafafa;
   
-  --color-muted: hsl(var(--muted));
-  --color-muted-foreground: hsl(var(--muted-foreground));
+  --color-muted: #e7e1dd;
+  --color-muted-foreground: #a18786;
   
-  --color-accent: hsl(var(--accent));
-  --color-accent-foreground: hsl(var(--accent-foreground));
+  --color-accent: #e7e1dd;
+  --color-accent-foreground: #2a2d35;
   
-  --color-popover: hsl(var(--popover));
-  --color-popover-foreground: hsl(var(--popover-foreground));
+  --color-popover: #ffffff;
+  --color-popover-foreground: #2a2d35;
   
-  --color-card: hsl(var(--card));
-  --color-card-foreground: hsl(var(--card-foreground));
+  --color-card: #ffffff;
+  --color-card-foreground: #2a2d35;
 
   /* Custom design tokens from user request */
-  --color-brand-background: hsl(var(--brand-background));
-  --color-light: hsl(var(--light));
-  --color-surface: hsl(var(--surface));
-  --color-surface-secondary: hsl(var(--surface-secondary));
-  --color-accent-purple: hsl(var(--accent-purple));
-  --color-accent-green: hsl(var(--accent-green));
-  --color-accent-cyan: hsl(var(--accent-cyan));
-  --color-accent-pink: hsl(var(--accent-pink));
-  --color-accent-yellow: hsl(var(--accent-yellow));
-  --color-accent-blue: hsl(var(--accent-blue));
+  --color-brand-background: #ae9091;
+  --color-light: #f4f5f6;
+  --color-surface: #ffffff;
+  --color-surface-secondary: #e7e1dd;
+  --color-accent-purple: #94a8f4;
+  --color-accent-green: #5dbe6b;
+  --color-accent-cyan: #53d0e8;
+  --color-accent-pink: #f6b3c6;
+  --color-accent-yellow: #f7c46a;
+  --color-accent-blue: #4c8bf5;
   
   --radius-lg: var(--radius);
   --radius-md: calc(var(--radius) - 2px);
